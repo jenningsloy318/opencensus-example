@@ -29,10 +29,6 @@ const (
 	</html>`
 )
 
-
-
-
-
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	t, err := template.New("home").Parse(html)
 	if err != nil {
@@ -41,14 +37,11 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, "")
 }
 
-
-
-
 func newHandler(w http.ResponseWriter, r *http.Request) {
-	// retrieve target from request 
+	// retrieve target from request
 
 	target := r.URL.Query().Get("target")
-	
+
 	if target == "" {
 		http.Error(w, "'target' parameter must be specified", 400)
 		return
@@ -58,10 +51,10 @@ func newHandler(w http.ResponseWriter, r *http.Request) {
 	// get the user and password from config
 	user := ""
 	password := ""
-	
+
 	// construct dsn
 	dsn := fmt.Sprintf("hdb://%s:%s@%s", user, password, target)
-	
+
 	// create prometheus exporter
 
 	prometheusExporter, err := prometheus.NewExporter(prometheus.Options{
@@ -81,7 +74,7 @@ func newHandler(w http.ResponseWriter, r *http.Request) {
 	if err := view.Register(ochttp.DefaultServerViews...); err != nil {
 		log.Fatalf("Failed to register http default server views for metrics: %v", err)
 	}
-	
+
 	// register hana views to view
 	if err := view.Register(collector.SYS_M_DisksViews...); err != nil {
 		log.Fatalf("Failed to register hana views for metrics: %v", err)
@@ -91,13 +84,11 @@ func newHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, span := trace.StartSpan(context.Background(), "fectch_data")
 	defer span.End()
 	collector.NEW(ctx, dsn)
-	
 
 	view.SetReportingPeriod(1 * time.Second)
 	prometheusExporter.ServeHTTP(w, r)
-	
-}
 
+}
 
 func main() {
 	// create prometheus exporter
@@ -109,8 +100,8 @@ func main() {
 
 	JaegerExporter, err := jaeger.NewExporter(jaeger.Options{
 		AgentEndpoint: agentEndpointURI,
-	//	Endpoint:      collectorEndpointURI,
-		ServiceName:   "hana_exporter",
+		//	Endpoint:      collectorEndpointURI,
+		ServiceName: "hana_exporter",
 	})
 	if err != nil {
 		log.Fatalf("Failed to create the Jaeger exporter: %v", err)

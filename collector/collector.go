@@ -36,7 +36,7 @@ func NEW(ctx context.Context, dsn string) {
 		db.Close()
 		// Wait to 1 seconds so that the traces can be exported
 		waitTime := 1 * time.Second
-			log.Printf("Waiting for %s seconds to ensure all traces are exported before exiting", waitTime)
+		log.Printf("Waiting for %s seconds to ensure all traces are exported before exiting", waitTime)
 		<-time.After(waitTime)
 	}()
 

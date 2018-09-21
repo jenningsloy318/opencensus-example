@@ -26,7 +26,7 @@ var (
 	total_size_measure = stats.Int64("total_size", "Volume Size.", "MB")
 	used_size_measure  = stats.Int64("used_size", "Volume Used Space.", "MB")
 
-	totalSizeView      = &view.View{
+	totalSizeView = &view.View{
 		Name:        "sys_m_disks/total_size",
 		Description: "Volume Size.",
 		TagKeys:     []tag.Key{hostTag, pathTag, usageTypeTag},
@@ -53,14 +53,14 @@ func CreateView(ctx context.Context, db *sql.DB) {
 	//get the sql data
 	defer span.End()
 
-// if muliple row returned
-disksRows ,err := db.QueryContext(ctx, disksQuery)
-defer disksRows.Close()
-	
-if err !=nil {
-	log.Fatalf("Failed to excute query: %v", err)
+	// if muliple row returned
+	disksRows, err := db.QueryContext(ctx, disksQuery)
+	defer disksRows.Close()
 
-}
+	if err != nil {
+		log.Fatalf("Failed to excute query: %v", err)
+
+	}
 	var host string
 	var path string
 	var usage_type string
@@ -77,7 +77,6 @@ if err !=nil {
 
 	defer sqlRowsScanSpan.End()
 
-
 	measureSetCtx, measureSetCtxSpan := trace.StartSpan(sqlRowsScanCtx, "measure_value_set")
 	diskctx, err := tag.New(measureSetCtx,
 		tag.Insert(hostTag, host),
@@ -85,11 +84,10 @@ if err !=nil {
 		tag.Insert(usageTypeTag, usage_type),
 	)
 
-	if err !=nil {
+	if err != nil {
 		log.Fatalf("Failed to insert tag: %v", err)
 
 	}
-
 
 	stats.Record(diskctx, total_size_measure.M(total_size))
 	stats.Record(diskctx, used_size_measure.M(used_size))
