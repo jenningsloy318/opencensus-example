@@ -82,6 +82,8 @@ func newHandler(w http.ResponseWriter, r *http.Request) {
 
 	// start strace and collect data
 	ctx, span := trace.StartSpan(context.Background(), "fectch_data")
+	span.Annotate([]trace.Attribute{trace.StringAttribute("step", "Initial")}, "This is span start")
+
 	defer span.End()
 	collector.NEW(ctx, dsn)
 

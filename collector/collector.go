@@ -14,6 +14,7 @@ import (
 func NEW(ctx context.Context, dsn string) {
 
 	sqlDriverRegCtx, sqlDriverRegSpan := trace.StartSpan(ctx, "sql_register_driver")
+	sqlDriverRegSpan.Annotate([]trace.Attribute{trace.StringAttribute("setp", "register_sql_driver")}, "Register the hana db driver into sql")
 
 	driverName, err := ocsql.Register("hdb", ocsql.WithAllTraceOptions())
 
@@ -24,6 +25,8 @@ func NEW(ctx context.Context, dsn string) {
 	sqlDriverRegSpan.End()
 
 	sqlOpenCtx, sqlOpenSpan := trace.StartSpan(sqlDriverRegCtx, "sql_open_db_conn")
+	sqlOpenSpan.AddAttributes(trace.StringAttribute("step","sql_opendb_conn"))
+	sqlOpenSpan.Annotate([]trace.Attribute{trace.StringAttribute("setp", "sql_opendb_conn")}, "open sql connection to database")
 
 	db, err := sql.Open(driverName, dsn)
 
@@ -41,6 +44,8 @@ func NEW(ctx context.Context, dsn string) {
 	}()
 
 	sqlQueryctx, sqlQuerySpan := trace.StartSpan(sqlOpenCtx, "sql_queries")
+	sqlQuerySpan.AddAttributes(trace.StringAttribute("step","sql_entry"))
+	sqlQuerySpan.Annotate([]trace.Attribute{trace.StringAttribute("step", "prepare_sql_execution")}, "prepare to execute the sqls, here is the entry point")
 	defer sqlQuerySpan.End()
 	CreateView(sqlQueryctx, db)
 

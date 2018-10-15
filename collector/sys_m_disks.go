@@ -50,6 +50,8 @@ var (
 func CreateView(ctx context.Context, db *sql.DB) {
 
 	ctx, span := trace.StartSpan(ctx, "sql_query_sys_m_disks")
+	span.Annotate([]trace.Attribute{trace.StringAttribute("step", "excute_sql_query_sys_m_disks")}, "excuting sql_query_sys_m_disks sql to get the disk info and exported as metrics")
+
 	//get the sql data
 	defer span.End()
 
@@ -68,6 +70,7 @@ func CreateView(ctx context.Context, db *sql.DB) {
 	var used_size int64
 
 	sqlRowsScanCtx, sqlRowsScanSpan := trace.StartSpan(ctx, "sql_rows_scan")
+	sqlRowsScanSpan.Annotate([]trace.Attribute{trace.StringAttribute("step", "get the value from sql returns and update it to variables")}, "get the value from sql returns and update it to variables")
 
 	for disksRows.Next() {
 		if err := disksRows.Scan(&host, &path, &usage_type, &total_size, &used_size); err != nil {
@@ -78,6 +81,7 @@ func CreateView(ctx context.Context, db *sql.DB) {
 	defer sqlRowsScanSpan.End()
 
 	measureSetCtx, measureSetCtxSpan := trace.StartSpan(sqlRowsScanCtx, "measure_value_set")
+	measureSetCtxSpan.Annotate([]trace.Attribute{trace.StringAttribute("step", "update_the_measurement")}, "use the variables to update the measurements")
 	diskctx, err := tag.New(measureSetCtx,
 		tag.Insert(hostTag, host),
 		tag.Insert(pathTag, path),
