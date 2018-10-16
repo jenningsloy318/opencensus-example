@@ -19,6 +19,8 @@ const (
 	disks = "sys_m_disks"
 )
 
+type DisksCollector struct{}
+
 var (
 	hostTag, _         = tag.NewKey("host")
 	pathTag, _         = tag.NewKey("path")
@@ -41,13 +43,22 @@ var (
 		Aggregation: view.LastValue(),
 	}
 
-	SYS_M_DisksViews = []*view.View{
+	DisksCollectorViews = []*view.View{
 		totalSizeView,
 		usedSizeView,
 	}
 )
 
-func CreateView(ctx context.Context, db *sql.DB) {
+func (DisksCollector) CollectorName() string {
+	return "DisksCollector"
+}
+
+func (DisksCollector) Views() []*view.View {
+
+	return DisksCollectorViews
+}
+
+func (DisksCollector) Scrape(ctx context.Context, db *sql.DB) {
 
 	ctx, span := trace.StartSpan(ctx, "sql_query_sys_m_disks")
 	span.Annotate([]trace.Attribute{trace.StringAttribute("step", "excute_sql_query_sys_m_disks")}, "excuting sql_query_sys_m_disks sql to get the disk info and exported as metrics")
@@ -56,26 +67,27 @@ func CreateView(ctx context.Context, db *sql.DB) {
 	defer span.End()
 
 	// if muliple row returned
-	disksRows, err := db.QueryContext(ctx, disksQuery)
-	defer disksRows.Close()
+	disksRow := db.QueryRowContext(ctx, disksQuery)
 
-	if err != nil {
-		log.Fatalf("Failed to excute query: %v", err)
-
-	}
 	var host string
 	var path string
 	var usage_type string
 	var total_size int64
 	var used_size int64
 
-	sqlRowsScanCtx, sqlRowsScanSpan := trace.StartSpan(ctx, "sql_rows_scan")
+	sqlRowsScanCtx, sqlRowsScanSpan := trace.StartSpan(ctx, "sql_row_scan")
 	sqlRowsScanSpan.Annotate([]trace.Attribute{trace.StringAttribute("step", "get the value from sql returns and update it to variables")}, "get the value from sql returns and update it to variables")
 
-	for disksRows.Next() {
-		if err := disksRows.Scan(&host, &path, &usage_type, &total_size, &used_size); err != nil {
-			log.Fatalf("Failed to featch rows: %v", err)
-		}
+	err := disksRow.Scan(&host, &path, &usage_type, &total_size, &used_size)
+	switch {
+	case err == sql.ErrNoRows:
+		log.Printf("No value returend")
+		sqlRowsScanSpan.Annotate([]trace.Attribute{}, "no rows returned")
+
+	case err != nil:
+		log.Fatal(err)
+		sqlRowsScanSpan.Annotate([]trace.Attribute{}, err.Error())
+
 	}
 
 	defer sqlRowsScanSpan.End()
